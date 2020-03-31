@@ -10,8 +10,6 @@ let currentTime = Date.now();
 
 let nEnemies = 3
 
-let floorUrl = "../images/checker_large.gif";
-
 let objModelUrl = {obj:'../models/obj/Eyeball/eyeball.obj', map:'../models/obj/Eyeball/textures/Eye_D.jpg'};
 
 function promisifyLoader ( loader, onProgress )
