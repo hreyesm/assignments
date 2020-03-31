@@ -5,12 +5,13 @@ let objectList = [];
 let mouse = new THREE.Vector2(), INTERSECTED, CLICKED;
 let radius = 100, theta = 0;
 
-let duration = 1000;
+let duration = 50;
 let currentTime = Date.now();
 
-let nEnemies = 3
+let points = 5;
+let nEnemies = 1;
 
-let objModelUrl = {obj:'../models/obj/Eyeball/eyeball.obj', map:'../models/obj/Eyeball/textures/Eye_D.jpg'};
+let objModelUrl = {obj:'../models/obj/cat/cat.obj', map:'../models/obj/cat/cat.jpg'};
 
 function promisifyLoader ( loader, onProgress )
 {
@@ -46,8 +47,9 @@ async function loadObj(objModelUrl)
         });
 
         object.name = 'Eyeball';
-        object.scale.set(10, 10, 10);
-        object.position.set(Math.random() * 200 - 100, Math.random() * 200 - 100, -500);
+        object.scale.set(2, 2, 2);
+        object.position.set(Math.random() * 200 - 100, Math.random() * 200 - 100, -750);
+        object.rotation.x = 5.25;
         
         objectList.push(object);
         
@@ -64,17 +66,39 @@ function animate() {
     currentTime = now;
     let fract = deltat / duration;
     
-    objectList.forEach(object => {
-        let randomVelocity = (Math.random() * 200) * fract;
-        object.position.z += randomVelocity;
-        if (object.position.z >= -200){
-            scene.remove(object);
-            objectList.pop();
-            if (objectList < nEnemies) {
-                loadObj(objModelUrl);
+    if (points > 0) {
+        objectList.forEach(object => {
+            object.position.z += fract * 10;
+            if (object.position.z >= -200) {
+                damageFromEnemy(object);
             }
-        }
-    });
+        });
+    }
+    else {
+        console.log("Game over");
+        CLICKED = null;
+    }
+}
+
+function damageFromEnemy(object) {
+    scene.remove(object);
+    points--;
+    console.log("points:", points);
+    respawn();
+}
+
+function damageToEnemy(object) {
+    scene.remove(object);
+    points++;
+    console.log("points:", points);
+    respawn();
+}
+
+function respawn() {
+    objectList.pop();
+    if (objectList < nEnemies) {
+        loadObj(objModelUrl);
+    }
 }
 
 function createScene(canvas) 
@@ -90,9 +114,11 @@ function createScene(canvas)
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
     
     let light = new THREE.DirectionalLight( 0xffffff, 1 );
+    let ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     light.position.set( 1, 1, 1 );
     scene.add( light );
-    
+    scene.add(ambientLight);
+
     for ( let i = 0; i < nEnemies; i ++ ) 
     {
         loadObj(objModelUrl);
@@ -165,10 +191,7 @@ function onDocumentMouseDown(event)
     {
         CLICKED = intersects[ intersects.length - 1 ].object;
         CLICKED.material.emissive.setHex( 0x00ff00 );
-        console.log(CLICKED);
-        
-        CLICKED.geometry.dispose();
-        
+        damageToEnemy(CLICKED.parent);
     } 
     else 
     {
