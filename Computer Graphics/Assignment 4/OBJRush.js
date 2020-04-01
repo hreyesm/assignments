@@ -1,3 +1,4 @@
+let request;
 let container;
 let camera, scene, raycaster, renderer;
 let objectList = [];
@@ -5,28 +6,41 @@ let objectList = [];
 let mouse = new THREE.Vector2(), INTERSECTED, CLICKED;
 let radius = 100, theta = 0;
 
-let duration = 50;
+let duration = 30;
 let currentTime = Date.now();
 
-let points = 5;
+let points = 0;
 let nEnemies = 1;
+
+let seconds = 15;
+
+let timer = setInterval(function() {
+    seconds--;
+    $("#timer").html("Time Left: " + seconds);
+    if (seconds <= 0) {
+        $("#timer").html("Game Over");
+        clearInterval(timer);
+        gameOver();
+    }
+}, 1000);
+
 
 let objModelUrl = {obj:'../models/obj/cat/cat.obj', map:'../models/obj/cat/cat.jpg'};
 
 function promisifyLoader ( loader, onProgress )
 {
     function promiseLoader ( url ) {
-
-      return new Promise( ( resolve, reject ) => {
-
-        loader.load( url, resolve, onProgress, reject );
-
-      } );
+        
+        return new Promise( ( resolve, reject ) => {
+            
+            loader.load( url, resolve, onProgress, reject );
+            
+        } );
     }
-
+    
     return {
-      originalLoader: loader,
-      load: promiseLoader,
+        originalLoader: loader,
+        load: promiseLoader,
     };
 }
 
@@ -35,18 +49,18 @@ const onError = ( ( err ) => { console.error( err ); } );
 async function loadObj(objModelUrl)
 {
     const objPromiseLoader = promisifyLoader(new THREE.OBJLoader());
-
+    
     try {
         let object = await objPromiseLoader.load(objModelUrl.obj);
         let texture = objModelUrl.hasOwnProperty('map') ? new THREE.TextureLoader().load(objModelUrl.map) : null;
-
+        
         object.traverse(function (child) {
             if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
             }
         });
-
-        object.name = 'Eyeball';
+        
+        object.name = 'Cat';
         object.scale.set(2, 2, 2);
         object.position.set(Math.random() * 200 - 100, Math.random() * 200 - 100, -750);
         object.rotation.x = 5.25;
@@ -65,24 +79,20 @@ function animate() {
     let deltat = now - currentTime;
     currentTime = now;
     let fract = deltat / duration;
-    
-    if (points > 0) {
-        objectList.forEach(object => {
-            object.position.z += fract * 10;
-            if (object.position.z >= -200) {
-                damageFromEnemy(object);
-            }
-        });
-    }
-    else {
-        console.log("Game over");
-        CLICKED = null;
-    }
+    objectList.forEach(object => {
+        object.position.z += fract * 10;
+        if (object.position.z >= -200) {
+            damageFromEnemy(object);
+        }
+    });
 }
 
 function damageFromEnemy(object) {
     scene.remove(object);
-    points--;
+    if (points > 0) {
+        points--;
+    }
+    $("#points").html("Points: " + points);
     console.log("points:", points);
     respawn();
 }
@@ -90,6 +100,7 @@ function damageFromEnemy(object) {
 function damageToEnemy(object) {
     scene.remove(object);
     points++;
+    $("#points").html("Points: " + points);
     console.log("points:", points);
     respawn();
 }
@@ -98,6 +109,16 @@ function respawn() {
     objectList.pop();
     if (objectList < nEnemies) {
         loadObj(objModelUrl);
+    }
+}
+
+function gameOver() {
+    if (confirm("Game Over\nPoints: " + points + "\n\nPress OK to restart")){
+        window.location.reload(true);
+    }
+    else {
+        window.cancelAnimationFrame(request);
+        request = undefined;
     }
 }
 
@@ -118,6 +139,8 @@ function createScene(canvas)
     light.position.set( 1, 1, 1 );
     scene.add( light );
     scene.add(ambientLight);
+
+    $("#points").html("Points: " + points);
 
     for ( let i = 0; i < nEnemies; i ++ ) 
     {
@@ -205,7 +228,7 @@ function onDocumentMouseDown(event)
 
 function run() 
 {
-    requestAnimationFrame( run );
+    request = requestAnimationFrame( run );
     render();
     animate();
 }
